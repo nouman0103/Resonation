@@ -21,13 +21,14 @@ class Communicator:
     def addClient(self, client):
         # check if client is already in the list
         if client not in self.clients:
-            
+            self.clients.append(client)
+
 
     def connectToClient(self, host):
         try:
             # send put request to client
             r = requests.put(f"http://{host}:8000/client?client="+communicator.this_ip, timeout=0.35)
-            print(r.json())
+            self.addClient(host)
         except Exception as e:
             pass
 
@@ -53,7 +54,7 @@ async def root():
 
 @app.put("/client")
 async def create_client(client: str):
-    communicator.clients.append(client)
+    communicator.addClient(client)
     return {"success": True}
 
 
