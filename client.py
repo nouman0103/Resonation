@@ -17,6 +17,11 @@ class Communicator:
         self.this_ip = sock.getsockname()[0]
         sock.close()
         self.clients = [self.this_ip]
+    
+    def addClient(self, client):
+        # check if client is already in the list
+        if client not in self.clients:
+            
 
     def connectToClient(self, host):
         try:
