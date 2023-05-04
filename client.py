@@ -4,7 +4,7 @@ import time
 import asyncio, aiohttp
 import requests, threading
 # import file upload
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, Form
 import socket
 
 # create a socket object
@@ -27,7 +27,7 @@ class Communicator:
     def connectToClient(self, host):
         try:
             # send put request to client
-            r = requests.put(f"http://{host}:8000/client?client="+communicator.this_ip, timeout=0.35)
+            r = requests.put(f"http://{host}:8000/client?client="+communicator.this_ip, timeout=1)
             self.addClient(host)
         except Exception as e:
             pass
@@ -63,20 +63,25 @@ async def timestamp():
     # return 3 sec later
     return {"timestamp": time.time() + 3}
 
-@app.get("/push_audiofile")
-async def push_audiofile(file_path: str):
+@app.put("/push_audiofile")
+async def push_audiofile(file:UploadFile = File(...)):
     # open file and read it
-    with open(file_path, "rb") as f:
-        data = f.read()
+    
 
     # loop through all client
     for client in communicator.clients:
         # send file to client
         try:
-            r = requests.post(f"http://{client}:8000/audiofile/", data=data)
-            # print if success
-            print(r.json())
+            print("Trying to send file to client: ", client)
+            # upload using aiohttp
+            async with aiohttp.ClientSession() as session:
+                # upload file as form data
+                async with session.post(f"http://{client}:8000/audiofile/", data={"file": file.file}) as resp:
+                    print(resp.status)
+                    print(await resp.text())
+                    
         except Exception as e:
+            print(e)
             # remove client from list
             communicator.clients.remove(client)
         
