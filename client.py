@@ -42,6 +42,22 @@ class Communicator:
             
     async def broadcast(self):
         ...
+
+    def __unthreaded_File_Upload(self, file, client):
+        # send requests.post to audiofile, formdata, file = file
+        r = requests.post(f"http://{client}:8000/audiofile/", data={"file": file})
+        print(r.status_code)
+        print(r.text)
+
+    def uploadFile(self, file):
+        # loop through all client
+        for client in self.clients:
+            # send file to client
+            th = threading.Thread(target=communicator.__unthreaded_File_Upload, args=(file, client))
+            th.start()
+        
+
+
     
 
 
@@ -63,30 +79,17 @@ async def timestamp():
     # return 3 sec later
     return {"timestamp": time.time() + 3}
 
+
+
 @app.put("/push_audiofile")
 async def push_audiofile(file:UploadFile = File(...)):
     # open file and read it
-    
 
+    file_Data = file.file.read()
+    file.file.close()
     # loop through all client
-    for client in communicator.clients:
-        # send file to client
-        try:
-            print("Trying to send file to client: ", client)
-            # upload using aiohttp
-            async with aiohttp.ClientSession() as session:
-                # upload file as form data
-                async with session.post(f"http://{client}:8000/audiofile/", data={"file": file.file}) as resp:
-                    print(resp.status)
-                    print(await resp.text())
-                    
-        except Exception as e:
-            print(e)
-            # remove client from list
-            communicator.clients.remove(client)
-        
-        
-
+    communicator.uploadFile(file_Data)
+    
     return {"success": True}
 
 
