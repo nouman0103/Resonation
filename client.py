@@ -5,7 +5,7 @@ import asyncio, aiohttp
 import requests, threading
 # import file upload
 from fastapi import FastAPI, File, UploadFile, Form
-import socket
+import socket, vlc
 
 # create a socket object
 app = FastAPI()
@@ -48,7 +48,7 @@ class Communicator:
     def __unthreaded_File_Upload(self, file, client):
         # send requests.post to audiofile, formdata, file = file
         try:
-            r = requests.post(f"http://{client}:8000/audiofile/", data={"file": file})
+            r = requests.post(f"http://{client}:8000/audiofile/", files={"file": file})
             print(r.status_code)
             print(r.text)
         except:
@@ -67,7 +67,7 @@ class Communicator:
         # send timestamp to all clients
         for client in self.clients:
             try:
-                r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(time.time()), timeout=0.5)
+                r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(time.time() + 5), timeout=0.5)
             except:
                 # remove client from list
                 self.clients.remove(client)
@@ -77,21 +77,38 @@ class Communicator:
 
 
     def uploadFile(self, file):
+        self.__number_of_sends = 0
         # loop through all client
         for client in self.clients:
             # send file to client
             th = threading.Thread(target=communicator.__unthreaded_File_Upload, args=(file, client))
             th.start()
         
+        th = threading.Thread(target=communicator.__scanAndSchedule)
+        th.start()
+        
 
 def waitAndPlayMusic(timestamp):
+    musicObject = vlc.MediaPlayer("./__audio.mp3")
+    musicObject.play()
+    musicObject.pause()
+    musicObject.set_time(0)
     # wait until timestamp
     while True:
         if time.time() >= timestamp:
             break
     # play music
+    musicObject.play()
     print("Music Started playing")
-
+    # wait until music is finished
+    while True:
+        if musicObject.get_state() == vlc.State.Ended:
+            break
+        time.sleep(0.1)
+    print("Music Finished playing")
+    musicObject.stop()
+    musicObject.release()
+    
 
 communicator = Communicator()
 
@@ -107,7 +124,7 @@ async def create_client(client: str):
 
 
 @app.get("/timestamp")
-async def timestamp(timestamp: int):
+async def timestamp(timestamp: float):
     print("Playing at", datetime.datetime.now() + datetime.timedelta(seconds=time.time() - timestamp))
     th = threading.Thread(target=waitAndPlayMusic, args=(timestamp,))
     th.start()
