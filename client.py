@@ -63,9 +63,34 @@ async def timestamp():
     # return 3 sec later
     return {"timestamp": time.time() + 3}
 
+@app.get("/push_audiofile")
+async def push_audiofile(file_path: str):
+    # open file and read it
+    with open(file_path, "rb") as f:
+        data = f.read()
 
-@app.post("/uploadfile/")
+    # loop through all client
+    for client in communicator.clients:
+        # send file to client
+        try:
+            r = requests.post(f"http://{client}:8000/audiofile/", data=data)
+            # print if success
+            print(r.json())
+        except Exception as e:
+            # remove client from list
+            communicator.clients.remove(client)
+        
+        
+
+    return {"success": True}
+
+
+@app.post("/audiofile/")
 async def create_upload_file(file: UploadFile = File(...)):
+    # save file
+    with open("./__audio.mp3", "wb") as f:
+        f.write(file.file.read())
+
     return {"filename": file.filename}
 
 
@@ -87,7 +112,9 @@ async def startup_event():
     th = threading.Thread(target=communicator.shine)
     th.start()
     
-
+@app.get("/clients")
+async def clients():
+    return {"clients": communicator.clients}
 
 # Run the server
 
