@@ -17,6 +17,8 @@ class Communicator:
         self.this_ip = sock.getsockname()[0]
         sock.close()
         self.clients = [self.this_ip]
+        self.__number_of_sends = 0
+        
     
     def addClient(self, client):
         # check if client is already in the list
@@ -45,9 +47,34 @@ class Communicator:
 
     def __unthreaded_File_Upload(self, file, client):
         # send requests.post to audiofile, formdata, file = file
-        r = requests.post(f"http://{client}:8000/audiofile/", data={"file": file})
-        print(r.status_code)
-        print(r.text)
+        try:
+            r = requests.post(f"http://{client}:8000/audiofile/", data={"file": file})
+            print(r.status_code)
+            print(r.text)
+        except:
+            # remove client from list
+            self.clients.remove(client)
+            print("Client", client, " not reachable")
+        
+        self.__number_of_sends += 1
+    
+    def __scanAndSchedule(self):
+        while True:
+            if self.__number_of_sends == len(self.clients):
+                break
+            time.sleep(1)
+        print("All clients received the file")
+        # send timestamp to all clients
+        for client in self.clients:
+            try:
+                r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(time.time()), timeout=0.5)
+            except:
+                # remove client from list
+                self.clients.remove(client)
+                print("Client", client, " not reachable")
+
+        print("Timestamp sent to all clients")
+
 
     def uploadFile(self, file):
         # loop through all client
@@ -57,8 +84,13 @@ class Communicator:
             th.start()
         
 
-
-    
+def waitAndPlayMusic(timestamp):
+    # wait until timestamp
+    while True:
+        if time.time() >= timestamp:
+            break
+    # play music
+    print("Music Started playing")
 
 
 communicator = Communicator()
@@ -75,9 +107,11 @@ async def create_client(client: str):
 
 
 @app.get("/timestamp")
-async def timestamp():
-    # return 3 sec later
-    return {"timestamp": time.time() + 3}
+async def timestamp(timestamp: int):
+    print("Playing at", datetime.datetime.now() + datetime.timedelta(seconds=time.time() - timestamp))
+    th = threading.Thread(target=waitAndPlayMusic, args=(timestamp,))
+    th.start()
+    return {"success": True}
 
 
 
@@ -91,6 +125,7 @@ async def push_audiofile(file:UploadFile = File(...)):
     communicator.uploadFile(file_Data)
     
     return {"success": True}
+
 
 
 @app.post("/audiofile/")
