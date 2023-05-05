@@ -6,6 +6,7 @@ import requests, threading
 # import file upload
 from fastapi import FastAPI, File, UploadFile, Form
 import socket, vlc
+import timeit
 
 # create a socket object
 app = FastAPI()
@@ -89,6 +90,7 @@ class Communicator:
         
 
 def waitAndPlayMusic(timestamp):
+    print(timestamp, type(timestamp))
     musicObject = vlc.MediaPlayer("./__audio.mp3")
     musicObject.play()
     musicObject.pause()
@@ -98,13 +100,17 @@ def waitAndPlayMusic(timestamp):
         if time.time() >= timestamp:
             break
     # play music
-    musicObject.play()
+    # musicObject.play()
+    #Timeit the time take to play the music
+    print(timeit.timeit(musicObject.play()))
+
+
     print("Music Started playing")
     # wait until music is finished
     while True:
-        if musicObject.get_state() == vlc.State.Ended:
-            break
-        time.sleep(0.1)
+        # verify the time
+        musicObject.set_time(int((time.time() - timestamp) * 1000))
+        time.sleep(1)
     print("Music Finished playing")
     musicObject.stop()
     musicObject.release()
