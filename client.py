@@ -4,7 +4,7 @@ import time
 import asyncio, aiohttp
 import requests, threading
 # import file upload
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile, Form, FileResponse
 import socket, vlc
 import timeit
 import ntplib
@@ -21,23 +21,25 @@ class MusicPlayer:
         pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.mixer.init()
         pygame.mixer.music.load("./__audio.mp3")
-        self.playing = False
         
 
     def play(self):
-        self.playing = True
         pygame.mixer.music.play()
+
+    def is_playing(self):
+        return pygame.mixer.music.get_busy()
     
     def pause(self):
-        self.playing = False
         pygame.mixer.music.pause()
 
     def stop(self):
-        self.playing = False
         pygame.mixer.music.stop()
 
     def set_time(self, time):
         pygame.mixer.music.set_pos(time)
+
+    def release(self):
+        pygame.mixer.music.release()
 
 
 class Communicator:
@@ -83,7 +85,6 @@ class Communicator:
             print(r.text)
         except:
             # remove client from list
-            self.clients.remove(client)
             print("Client", client, " not reachable")
         
         self.__number_of_sends += 1
@@ -101,7 +102,7 @@ class Communicator:
                 r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(future_time), timeout=0.5)
             except:
                 # remove client from list
-                self.clients.remove(client)
+                #self.clients.remove(client)
                 print("Client", client, " not reachable")
 
         print("Timestamp sent to all clients. Now time:", time.time(), "Future time:", future_time)
@@ -131,24 +132,17 @@ def waitAndPlayMusic(timestamp):
     while True:
         if time.time() >= (timestamp - time_offset):
             break
-
-    print(time.time() + time_offset)
+    
+    print("Started playing music")
     # play music
     musicObject.play()
-    #Timeit the time take to play the music
-    #print(timeit.timeit(musicObject.play()))
-
-
-
-
-    #print("Music Started playing")
+    
     # wait until music is finished
     while True:
-        # verify the time
-        #musicObject.set_time(int((time.time() - timestamp) * 1000))
-        time.sleep(1)
-    print("Music Finished playing")
-    musicObject.stop()
+        if not musicObject.is_playing():
+            break
+
+    print("Music finished")
     musicObject.release()
     
 
@@ -195,10 +189,19 @@ async def create_upload_file(file: UploadFile = File(...)):
 
     return {"filename": file.filename}
 
+@app.get("/audiofile/")
+async def get_audiofile():
+    return FileResponse("./__audio.mp3")
 
 @app.get("/runclient")
 async def runclient():
     pass
+
+@app.patch("/release")
+async def release():
+    # stop music
+    Ellipsis
+
 
 """
 
