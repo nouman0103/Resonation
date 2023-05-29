@@ -4,7 +4,8 @@ import time
 import asyncio, aiohttp
 import requests, threading
 # import file upload
-from fastapi import FastAPI, File, UploadFile, Form, FileResponse
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import FileResponse
 import socket, vlc
 import timeit
 import ntplib
