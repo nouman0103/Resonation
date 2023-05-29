@@ -7,6 +7,8 @@ import requests, threading
 from fastapi import FastAPI, File, UploadFile, Form
 import socket, vlc
 import timeit
+import ntplib
+
 
 # create a socket object
 app = FastAPI()
@@ -66,15 +68,16 @@ class Communicator:
             time.sleep(1)
         print("All clients received the file")
         # send timestamp to all clients
+        future_time = time.time() + 20
         for client in self.clients:
             try:
-                r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(time.time() + 5), timeout=0.5)
+                r = requests.get(f"http://{client}:8000/timestamp?timestamp="+str(future_time), timeout=0.5)
             except:
                 # remove client from list
                 self.clients.remove(client)
                 print("Client", client, " not reachable")
 
-        print("Timestamp sent to all clients")
+        print("Timestamp sent to all clients. Now time:", time.time(), "Future time:", future_time)
 
 
     def uploadFile(self, file):
@@ -92,18 +95,20 @@ class Communicator:
 def waitAndPlayMusic(timestamp):
     print(timestamp, type(timestamp))
     musicObject = vlc.MediaPlayer("./__audio.mp3")
-    musicObject.play()
-    musicObject.pause()
-    musicObject.set_time(0)
+    c = ntplib.NTPClient()
+    response = c.request('europe.pool.ntp.org', version=3)
+    time_offset = response.offset
+    
     # wait until timestamp
     while True:
-        if time.time() >= timestamp:
+        if time.time() >= (timestamp - time_offset):
             break
     print(time.time())
     # play music
-    # musicObject.play()
+    musicObject.play()
     #Timeit the time take to play the music
     #print(timeit.timeit(musicObject.play()))
+
 
 
 
@@ -187,3 +192,4 @@ async def clients():
 # Run the server
 
 # uvicorn client:app --reload --host 0.0.0.0 --port 8000
+# uvicorn client:app --reload --host 192.168.100.32 --port 8000
