@@ -96,14 +96,18 @@ def waitAndPlayMusic(timestamp):
     print(timestamp, type(timestamp))
     musicObject = vlc.MediaPlayer("./__audio.mp3")
     c = ntplib.NTPClient()
-    response = c.request('europe.pool.ntp.org', version=3)
+    response = c.request('pool.ntp.org', version=3)
     time_offset = response.offset
-    
+    print("Time offset:", time_offset)
+    musicObject.play()
+    musicObject.pause()
+    musicObject.set_time(0)
     # wait until timestamp
     while True:
         if time.time() >= (timestamp - time_offset):
             break
-    print(time.time())
+
+    print(time.time() + time_offset)
     # play music
     musicObject.play()
     #Timeit the time take to play the music
