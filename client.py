@@ -99,17 +99,19 @@ def waitAndPlayMusic(timestamp):
     while True:
         if time.time() >= timestamp:
             break
+    print(time.time())
     # play music
     # musicObject.play()
     #Timeit the time take to play the music
-    print(timeit.timeit(musicObject.play()))
+    #print(timeit.timeit(musicObject.play()))
 
 
-    print("Music Started playing")
+
+    #print("Music Started playing")
     # wait until music is finished
     while True:
         # verify the time
-        musicObject.set_time(int((time.time() - timestamp) * 1000))
+        #musicObject.set_time(int((time.time() - timestamp) * 1000))
         time.sleep(1)
     print("Music Finished playing")
     musicObject.stop()
