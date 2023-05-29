@@ -8,10 +8,37 @@ from fastapi import FastAPI, File, UploadFile, Form
 import socket, vlc
 import timeit
 import ntplib
-
+import pygame
+import pygame.mixer as mx
+import pygame.time as tm
 
 # create a socket object
 app = FastAPI()
+
+
+class MusicPlayer:
+    def __init__(self):
+        pygame.mixer.pre_init(44100, -16, 2, 2048)
+        pygame.mixer.init()
+        pygame.mixer.music.load("./__audio.mp3")
+        self.playing = False
+        
+
+    def play(self):
+        self.playing = True
+        pygame.mixer.music.play()
+    
+    def pause(self):
+        self.playing = False
+        pygame.mixer.music.pause()
+
+    def stop(self):
+        self.playing = False
+        pygame.mixer.music.stop()
+
+    def set_time(self, time):
+        pygame.mixer.music.set_pos(time)
+
 
 class Communicator:
     def __init__(self):
@@ -94,14 +121,12 @@ class Communicator:
 
 def waitAndPlayMusic(timestamp):
     print(timestamp, type(timestamp))
-    musicObject = vlc.MediaPlayer("./__audio.mp3")
+    #musicObject = vlc.MediaPlayer("./__audio.mp3")
+    musicObject = MusicPlayer()
     c = ntplib.NTPClient()
     response = c.request('pool.ntp.org', version=3)
     time_offset = response.offset
     print("Time offset:", time_offset)
-    musicObject.play()
-    musicObject.pause()
-    musicObject.set_time(0)
     # wait until timestamp
     while True:
         if time.time() >= (timestamp - time_offset):
