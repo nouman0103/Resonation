@@ -1,17 +1,13 @@
 from fastapi import FastAPI
 import datetime
 import time
-import asyncio, aiohttp
 import requests, threading
 # import file upload
-from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
-import socket, vlc
-import timeit
+import socket
 import ntplib
 import pygame
-import pygame.mixer as mx
-import pygame.time as tm
 
 # create a socket object
 app = FastAPI()
@@ -223,6 +219,8 @@ async def clients():
     return {"clients": communicator.clients}
 
 # Run the server
+
+
 
 # uvicorn client:app --reload --host 0.0.0.0 --port 8000
 # uvicorn client:app --reload --host 192.168.100.32 --port 8000
